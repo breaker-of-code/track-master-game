@@ -7926,10 +7926,11 @@ function update(dt) {
   }
 
   // Trains
-  // Determine if a "last train turbo" applies: only one train remains alive,
-  // all spawns done, and that train's path leads to its correct station.
+  // End-of-level turbo: once all trains have left the caves (no more spawns),
+  // speed up every correctly-routed train so the level doesn't drag waiting
+  // for the last one. Mis-routed trains stay normal speed so they can be fixed.
   const aliveTrains = state.trains.filter(t => !t.dead && !t.arrived);
-  const isLastTrainAlive = (state.spawned >= LEVEL.totalTrains) && aliveTrains.length === 1;
+  const spawnDone = (state.spawned >= LEVEL.totalTrains);
 
   for (const tr of state.trains) {
     if (tr.dead || tr.arrived) continue;
@@ -7948,8 +7949,8 @@ function update(dt) {
     if (state.freezeTime > 0) speedMult = 0;
     else if (state.slowmoTime > 0) speedMult *= 0.5;
     if (tr.autoBoost) speedMult = 4;
-    // Last-train turbo
-    if (isLastTrainAlive && !tr.autoBoost) {
+    // End-of-level turbo
+    if (spawnDone && !tr.autoBoost) {
       const dest = predictDestination(tr.toNode);
       if (dest && dest.color === tr.color) {
         speedMult = 3;
