@@ -67,7 +67,7 @@
     min-width: 80px;
   }
   .hud-cell .label { opacity: 0.6; font-size: 10px; }
-  .hud-cell .val { font-family: 'Impact', 'Haettenschweiler', 'Arial Narrow Bold', sans-serif; font-size: 18px; color: var(--gold); line-height: 1.1; }
+  .hud-cell .val { font-family: 'Impact', 'Haettenschweiler', 'Arial Narrow Bold', sans-serif; font-size: 18px; color: var(--gold); line-height: 1.1; white-space: nowrap; }
   .hud-cell.danger .val { color: var(--danger); }
 
   .stage {
@@ -1191,7 +1191,7 @@
     max-width: 300px;
     width: calc(100% - 40px);
     text-align: center;
-    z-index: 80;
+    z-index: 95;
     box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     display: none;
   }
@@ -2117,9 +2117,8 @@
           <span class="ib-icon">🎨</span><span class="ib-label">Skins</span>
         </button>
       </div>
-      <button id="devResetBtn" class="dev-reset-btn">🧪 Reset Game Data</button>
     </div>
-    <div class="version-tag">v1.8.2</div>
+    <div class="version-tag">v1.8.6</div>
   </div>
 </div>
 
@@ -2361,10 +2360,15 @@ const LEVELS = [
     powerups: { available: [], starting: {}, introduces: null },
     rewardCoins: 0,
     nodes: {
-      entry:   { x: 300, y: 80,  type: "entry",   next: ["s1"] },
-      s1:      { x: 300, y: 280, type: "switch",  options: ["st_red", "st_blue"], switchState: 0 },
-      st_red:  { x: 160, y: 540, type: "station", color: "red", slot: "bottom" },
-      st_blue: { x: 440, y: 540, type: "station", color: "blue", slot: "bottom" }
+      entry:   { x: 300, y: 70,  type: "entry",   next: ["s1"] },
+      s1:      { x: 300, y: 360, type: "switch",  options: ["st_red", "st_blue"], switchState: 0 },
+      st_red:  { x: 120, y: 600, type: "station", color: "red", slot: "bottom" },
+      st_blue: { x: 480, y: 510, type: "station", color: "blue", slot: "bottom" }
+    },
+    curves: {
+      "entry->s1":     { x: 380, y: 220 },
+      "s1->st_red":    { x: 120, y: 440 },
+      "s1->st_blue":   { x: 480, y: 420 }
     },
     tutorial: { entry: "entry", station: "st_red", switch: "s1" }
   },
@@ -2378,9 +2382,9 @@ const LEVELS = [
       accent: "#a8c098"
     },
     spawnInterval: 2700,
-    trainSpeed: 49,
+    trainSpeed: 52,
     totalTrains: 9,
-    trainColors: ["red", "blue"],
+    trainColors: ["red", "blue", "green"],
     entries: ["entry"],
     powerups: {
       available: [],
@@ -2389,33 +2393,19 @@ const LEVELS = [
     },
     rewardCoins: 0,
     nodes: {
-      st_0: {
-        x: 70,
-        y: 640,
-        type: "station",
-        color: "red",
-        slot: "bottom"
-      },
-      st_1: {
-        x: 530,
-        y: 640,
-        type: "station",
-        color: "blue",
-        slot: "bottom"
-      },
-      entry: {
-        x: 300,
-        y: 80,
-        type: "entry",
-        next: ["sw1"]
-      },
-      sw1: {
-        x: 300,
-        y: 240,
-        type: "switch",
-        options: ["st_1", "st_0"],
-        switchState: 0
-      }
+      entry: { x: 300, y: 70, type: "entry", next: ["sw1"] },
+      sw1:   { x: 300, y: 250, type: "switch", options: ["st_0", "sw2"], switchState: 0 },
+      sw2:   { x: 400, y: 400, type: "switch", options: ["st_1", "st_2"], switchState: 0 },
+      st_0:  { x: 80,  y: 640, type: "station", color: "red",   slot: "bottom" },
+      st_1:  { x: 320, y: 660, type: "station", color: "blue",  slot: "bottom" },
+      st_2:  { x: 540, y: 640, type: "station", color: "green", slot: "bottom" }
+    },
+    curves: {
+      "entry->sw1":  { x: 360, y: 160 },
+      "sw1->st_0":   { x: 110, y: 420 },
+      "sw1->sw2":    { x: 400, y: 300 },
+      "sw2->st_1":   { x: 330, y: 540 },
+      "sw2->st_2":   { x: 540, y: 520 }
     }
   },
   {
@@ -2428,7 +2418,7 @@ const LEVELS = [
       accent: "#a8c098"
     },
     spawnInterval: 2400,
-    trainSpeed: 50,
+    trainSpeed: 55,
     totalTrains: 10,
     trainColors: ["red", "blue", "yellow"],
     entries: ["entry"],
@@ -2494,7 +2484,7 @@ const LEVELS = [
       accent: "#a8c098"
     },
     spawnInterval: 2400,
-    trainSpeed: 50,
+    trainSpeed: 58,
     totalTrains: 11,
     trainColors: ["red", "blue", "yellow"],
     entries: ["entry"],
@@ -2560,7 +2550,7 @@ const LEVELS = [
       accent: "#a8c098"
     },
     spawnInterval: 2200,
-    trainSpeed: 52,
+    trainSpeed: 61,
     totalTrains: 12,
     trainColors: ["red", "blue", "yellow"],
     entries: ["entry"],
@@ -7532,8 +7522,10 @@ function newState() {
   const queue = buildSpawnQueue(total, colors, entries);
   // Compute gate config for this level (deterministic by level id)
   const gate = buildGateConfig();
+  const nodes = JSON.parse(JSON.stringify(LEVEL.nodes));
+  for (const id in nodes) nodes[id].id = id; // tag each node with its key
   return {
-    nodes: JSON.parse(JSON.stringify(LEVEL.nodes)),
+    nodes,
     trains: [],
     spawnQueue: queue,
     score: 0,
@@ -7591,8 +7583,16 @@ function buildGateConfig() {
   const from = nodes[pick.fromId];
   const to = nodes[pick.toId];
   const t = 0.55; // 55% along the edge
-  const x = from.x + (to.x - from.x) * t;
-  const y = from.y + (to.y - from.y) * t;
+  const curve = LEVEL.curves && LEVEL.curves[pick.fromId + '->' + pick.toId];
+  let x, y;
+  if (curve) {
+    const u = 1 - t;
+    x = u * u * from.x + 2 * u * t * curve.x + t * t * to.x;
+    y = u * u * from.y + 2 * u * t * curve.y + t * t * to.y;
+  } else {
+    x = from.x + (to.x - from.x) * t;
+    y = from.y + (to.y - from.y) * t;
+  }
   return {
     edgeKey: pick.fromId + '->' + pick.toId,
     fromId: pick.fromId,
@@ -7827,6 +7827,7 @@ canvas.addEventListener('pointerdown', (e) => {
     const dx = x - g.x, dy = y - g.y;
     if (dx*dx + dy*dy < 32*32) {
       g.closed = !g.closed;
+      g._reopenAt = 0; // cancel any pending auto-reopen on manual toggle
       SFX.click();
       if (navigator.vibrate) try { navigator.vibrate(20); } catch (e) {}
       return; // consumed
@@ -7867,7 +7868,18 @@ function update(dt) {
         const bonus = 250;
         state.score += bonus;
         spawnFloatingScore(state.gate.x, state.gate.y, bonus, 1);
+        // Schedule auto-reopen 2s after the train clears, so traffic resumes.
+        state.gate._reopenAt = 2.0;
       }
+    }
+  }
+  // Auto-reopen countdown: once a train has passed and the gate is still
+  // closed, reopen it 2 seconds later so cars (traffic) can flow again.
+  if (state.gate && state.gate._reopenAt > 0) {
+    state.gate._reopenAt -= dt;
+    if (state.gate._reopenAt <= 0) {
+      state.gate._reopenAt = 0;
+      state.gate.closed = false;
     }
   }
 
@@ -8010,14 +8022,6 @@ function update(dt) {
           state.combo++;
           const mult = comboMultiplier(state.combo);
           let pts = 1000 * mult;
-          // Close-call bonus: train was previously on a wrong path but the
-          // player flipped a switch just in time. Award +50 × multiplier and
-          // show a "Close call!" message.
-          if (tr._wasOnWrongPath) {
-            const bonus = 500 * mult;
-            pts += bonus;
-            showCloseCallBonus(to.x, to.y, bonus);
-          }
           state.score += pts;
           tr.arrived = true;
           state.completed++;
@@ -8206,9 +8210,11 @@ function draw() {
     n.options.forEach((optId, i) => {
       if (i === n.switchState) return;
       const o = state.nodes[optId];
+      const c = edgeCtrl(n, o);
       ctx.beginPath();
       ctx.moveTo(n.x, n.y);
-      ctx.lineTo(o.x, o.y);
+      if (c) ctx.quadraticCurveTo(c.x, c.y, o.x, o.y);
+      else ctx.lineTo(o.x, o.y);
       ctx.stroke();
     });
   }
@@ -8369,28 +8375,66 @@ function drawSkyline(theme) {
   ctx.restore();
 }
 
+// ---- Curve-aware edge geometry ----
+// A level may define LEVEL.curves["fromId->toId"] = { x, y } as a quadratic
+// Bézier control point. Edges without an entry stay perfectly straight, so
+// existing levels are unaffected.
+function edgeCtrl(a, b) {
+  const curves = LEVEL.curves;
+  if (!curves) return null;
+  const key = (a.id || a._id || '') + '->' + (b.id || b._id || '');
+  return curves[key] || null;
+}
+// Position along an edge at parameter t (0..1), following the curve if present.
+function edgePos(a, b, t) {
+  const c = edgeCtrl(a, b);
+  if (!c) return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+  const u = 1 - t;
+  return {
+    x: u * u * a.x + 2 * u * t * c.x + t * t * b.x,
+    y: u * u * a.y + 2 * u * t * c.y + t * t * b.y,
+  };
+}
+// Unit tangent (direction of travel) along an edge at t.
+function edgeTangent(a, b, t) {
+  const c = edgeCtrl(a, b);
+  let dx, dy;
+  if (!c) { dx = b.x - a.x; dy = b.y - a.y; }
+  else {
+    const u = 1 - t;
+    dx = 2 * u * (c.x - a.x) + 2 * t * (b.x - c.x);
+    dy = 2 * u * (c.y - a.y) + 2 * t * (b.y - c.y);
+  }
+  const m = Math.hypot(dx, dy) || 1;
+  return { x: dx / m, y: dy / m };
+}
+
 function drawTrack(a, b) {
+  const c = edgeCtrl(a, b);
   ctx.beginPath();
   ctx.moveTo(a.x, a.y);
-  ctx.lineTo(b.x, b.y);
+  if (c) ctx.quadraticCurveTo(c.x, c.y, b.x, b.y);
+  else ctx.lineTo(b.x, b.y);
   ctx.stroke();
 }
 
 function drawTies(a, b) {
-  const dx = b.x - a.x, dy = b.y - a.y;
-  const dist = Math.hypot(dx, dy);
-  const nx = dx / dist, ny = dy / dist;
-  const px = -ny, py = nx; // perpendicular
+  const c = edgeCtrl(a, b);
+  // Approximate arc length to keep tie spacing roughly even on curves.
+  const approx = c
+    ? Math.hypot(c.x - a.x, c.y - a.y) + Math.hypot(b.x - c.x, b.y - c.y)
+    : Math.hypot(b.x - a.x, b.y - a.y);
   const tieLen = 6;
   const spacing = 12;
-  const count = Math.floor(dist / spacing);
+  const count = Math.floor(approx / spacing);
   for (let i = 1; i < count; i++) {
-    const t = (i * spacing) / dist;
-    const cx = a.x + dx * t;
-    const cy = a.y + dy * t;
+    const t = i / count;
+    const pos = edgePos(a, b, t);
+    const tan = edgeTangent(a, b, t);
+    const px = -tan.y, py = tan.x; // perpendicular
     ctx.beginPath();
-    ctx.moveTo(cx + px * tieLen, cy + py * tieLen);
-    ctx.lineTo(cx - px * tieLen, cy - py * tieLen);
+    ctx.moveTo(pos.x + px * tieLen, pos.y + py * tieLen);
+    ctx.lineTo(pos.x - px * tieLen, pos.y - py * tieLen);
     ctx.stroke();
   }
 }
@@ -8415,14 +8459,30 @@ function drawRails(edges) {
 }
 
 function drawParallelRail(a, b, offset) {
-  const dx = b.x - a.x, dy = b.y - a.y;
-  const dist = Math.hypot(dx, dy);
-  if (dist === 0) return;
-  const nx = dx / dist, ny = dy / dist;
-  const px = -ny * offset, py = nx * offset;
+  const c = edgeCtrl(a, b);
+  if (!c) {
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const dist = Math.hypot(dx, dy);
+    if (dist === 0) return;
+    const nx = dx / dist, ny = dy / dist;
+    const px = -ny * offset, py = nx * offset;
+    ctx.beginPath();
+    ctx.moveTo(a.x + px, a.y + py);
+    ctx.lineTo(b.x + px, b.y + py);
+    ctx.stroke();
+    return;
+  }
+  // Curved: sample the Bézier and offset each point along its normal.
+  const STEPS = 20;
   ctx.beginPath();
-  ctx.moveTo(a.x + px, a.y + py);
-  ctx.lineTo(b.x + px, b.y + py);
+  for (let i = 0; i <= STEPS; i++) {
+    const t = i / STEPS;
+    const pos = edgePos(a, b, t);
+    const tan = edgeTangent(a, b, t);
+    const px = -tan.y * offset, py = tan.x * offset;
+    if (i === 0) ctx.moveTo(pos.x + px, pos.y + py);
+    else ctx.lineTo(pos.x + px, pos.y + py);
+  }
   ctx.stroke();
 }
 
@@ -8442,7 +8502,9 @@ function drawTrackGlow(edges) {
     ctx.shadowBlur = 12;
     ctx.beginPath();
     ctx.moveTo(a.x, a.y);
-    ctx.lineTo(b.x, b.y);
+    const c = edgeCtrl(a, b);
+    if (c) ctx.quadraticCurveTo(c.x, c.y, b.x, b.y);
+    else ctx.lineTo(b.x, b.y);
     ctx.stroke();
   });
   ctx.restore();
@@ -8460,8 +8522,9 @@ function drawBrokenTracks(edges) {
     const g = state.gate;
     let t = 0.5;
     if (g && g.edgeKey === edgeKey) t = g.t;
-    const x = a.x + (b.x - a.x) * t;
-    const y = a.y + (b.y - a.y) * t;
+    const bpos = edgePos(a, b, t);
+    const x = bpos.x;
+    const y = bpos.y;
     const remaining = state.brokenTracks[edgeKey];
     // Red caution X
     ctx.strokeStyle = '#ff3838';
@@ -8890,9 +8953,10 @@ const TRAIN_SHAPES = {
 function drawTrain(tr) {
   const from = state.nodes[tr.fromNode];
   const to = state.nodes[tr.toNode];
-  const x = from.x + (to.x - from.x) * tr.t;
-  const y = from.y + (to.y - from.y) * tr.t;
-  const angle = Math.atan2(to.y - from.y, to.x - from.x);
+  const pos = edgePos(from, to, tr.t);
+  const x = pos.x, y = pos.y;
+  const tan = edgeTangent(from, to, tr.t);
+  const angle = Math.atan2(tan.y, tan.x);
 
   // Warning state: check if current path leads to a wrong-color station
   const dest = predictDestination(tr.toNode);
@@ -9264,6 +9328,12 @@ function maybeShowGateIntro() {
 function showTapToStart() {
   // Only show if not in tutorial flow
   if (tutLayer.classList.contains('show')) return;
+  // Defer if a power-up or gate intro is currently open — it will call
+  // showTapToStart() again once dismissed, so its Got it button stays tappable.
+  const puOpen = document.getElementById('puIntro').classList.contains('show');
+  const gateOpen = document.getElementById('gateIntroOverlay') &&
+                   document.getElementById('gateIntroOverlay').classList.contains('show');
+  if (puOpen || gateOpen) return;
   const overlay = document.getElementById('tapToStart');
   document.getElementById('tapStartLevelName').textContent =
     `${LEVEL.city} — ${LEVEL.name}`;
@@ -9871,10 +9941,8 @@ function maybeShowPowerupIntro() {
   const dismiss = () => {
     popup.classList.remove('show');
     markPowerupSeen(intro);
-    // Resume
-    state.running = true;
-    lastTime = performance.now();
-    requestAnimationFrame(loop);
+    // Now that the intro is closed, show the tap-to-start gate.
+    showTapToStart();
   };
   document.getElementById('puIntroBtn').onclick = dismiss;
 }
@@ -10698,14 +10766,15 @@ function finishTutorial() {
   startBGM();
 }
 
-tutDim.addEventListener('pointerdown', (e) => {
+function handleTutTap(e) {
   if (!tutWaitingForTap) return;
   const rect = canvas.getBoundingClientRect();
   const x = (e.clientX - rect.left) * (W / rect.width);
   const y = (e.clientY - rect.top)  * (H / rect.height);
   const n = state.nodes[tutWaitingForTap];
   if (!n) return;
-  if ((x - n.x) ** 2 + (y - n.y) ** 2 < 40 * 40) {
+  // Generous tap radius so the switch is easy to hit during the tutorial.
+  if ((x - n.x) ** 2 + (y - n.y) ** 2 < 60 * 60) {
     n.switchState = (n.switchState + 1) % n.options.length;
     n._clickFlash = 1;
     n._spinAngle = 1;
@@ -10723,6 +10792,10 @@ tutDim.addEventListener('pointerdown', (e) => {
       }, 500);
     }
   }
+}
+tutDim.addEventListener('pointerdown', handleTutTap);
+canvas.addEventListener('pointerdown', (e) => {
+  if (tutLayer.classList.contains('show')) handleTutTap(e);
 });
 
 window.addEventListener('resize', () => {
@@ -10763,14 +10836,7 @@ document.getElementById('howToCloseBtn').addEventListener('click', () => {
 });
 document.getElementById('gateIntroOkBtn').addEventListener('click', () => {
   document.getElementById('gateIntroOverlay').classList.remove('show');
-});
-document.getElementById('devResetBtn').addEventListener('click', () => {
-  try {
-    Object.keys(localStorage)
-      .filter(k => k.startsWith('tot_'))
-      .forEach(k => localStorage.removeItem(k));
-  } catch (e) {}
-  location.reload();
+  showTapToStart();
 });
 document.getElementById('achBackBtn').addEventListener('click', hideAchievements);
 document.getElementById('skinsBackBtn').addEventListener('click', hideSkins);
